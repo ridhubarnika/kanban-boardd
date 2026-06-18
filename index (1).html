@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Kanban Board</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0a1e;
+    --surface: #13102a;
+    --surface2: #1c1838;
+    --border: #2d2660;
+    --accent: #a78bfa;
+    --accent2: #f472b6;
+    --text: #ede9fe;
+    --text-muted: #8b7fc7;
+    --p1: #f87171;
+    --p2: #fb923c;
+    --p3: #60a5fa;
+    --p4: #94a3b8;
+    --radius: 10px;
+    --card-radius: 8px;
+    --transition: 0.18s ease;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(139,92,246,0.13) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 80%, rgba(244,114,182,0.09) 0%, transparent 50%),
+      radial-gradient(ellipse at 60% 10%, rgba(99,102,241,0.08) 0%, transparent 40%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px;
+    background: linear-gradient(135deg, #13102a 60%, #1e1550 100%);
+    border-bottom: 1px solid #2d2660;
+    box-shadow: 0 2px 28px rgba(139,92,246,0.12);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header h1 span.dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a78bfa, #f472b6);
+    box-shadow: 0 0 10px rgba(167,139,250,0.6);
+  }
+
+  /* SEARCH + FILTER */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .search-box {
+    display: flex;
+    align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    gap: 7px;
+  }
+  .search-box input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 0.85rem;
+    width: 180px;
+  }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .search-box svg { color: var(--text-muted); }
+
+  .filter-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* BOARD */
+  .board {
+    display: flex;
+    gap: 18px;
+    padding: 24px 28px;
+    overflow-x: auto;
+    min-height: calc(100vh - 74px);
+    align-items: flex-start;
+  }
+
+  /* COLUMN */
+  .column {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    width: 280px;
+    min-width: 260px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transition: var(--transition);
+  }
+  .column.drag-over {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(108,99,255,0.18);
+  }
+
+  .col-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .col-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .col-title .col-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .count-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    padding: 2px 8px;
+    font-weight: 700;
+  }
+
+  .cards-list {
+    padding: 10px 10px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 60px;
+    flex: 1;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 11px 13px;
+    cursor: grab;
+    transition: box-shadow var(--transition), opacity var(--transition), transform var(--transition);
+    position: relative;
+    outline: none;
+  }
+  .card:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(108,99,255,0.35);
+  }
+  .card:hover {
+    border-color: #3a3f5c;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  }
+  .card.dragging {
+    opacity: 0.45;
+    transform: scale(0.97);
+    cursor: grabbing;
+  }
+  .card.hidden { display: none; }
+
+  .card-row-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .card-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    flex: 1;
+    word-break: break-word;
+  }
+  .card-title.done-title {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  .priority-badge {
+    font-size: 0.67rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .priority-badge.P1 { background: rgba(255,83,112,0.15); color: var(--p1); border: 1px solid rgba(255,83,112,0.3); }
+  .priority-badge.P2 { background: rgba(255,183,77,0.12); color: var(--p2); border: 1px solid rgba(255,183,77,0.3); }
+  .priority-badge.P3 { background: rgba(79,195,247,0.12); color: var(--p3); border: 1px solid rgba(79,195,247,0.3); }
+  .priority-badge.P4 { background: rgba(120,144,156,0.12); color: var(--p4); border: 1px solid rgba(120,144,156,0.3); }
+
+  .card-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 7px;
+    word-break: break-word;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .card-ts {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    opacity: 0.65;
+  }
+
+  /* PRIORITY DROPDOWN on card */
+  .priority-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 5px;
+    cursor: pointer;
+    outline: none;
+  }
+  .priority-select:focus { border-color: var(--accent); }
+
+  /* CONTEXT MENU */
+  .ctx-menu {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    z-index: 999;
+    min-width: 160px;
+    padding: 4px 0;
+    display: none;
+  }
+  .ctx-menu.visible { display: block; }
+  .ctx-item {
+    padding: 9px 16px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    color: var(--text);
+    transition: background var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ctx-item:hover { background: var(--border); }
+  .ctx-item.danger { color: var(--p1); }
+
+  /* ADD CARD */
+  .add-card-area {
+    padding: 8px 10px 12px;
+  }
+  .add-card-form { display: none; flex-direction: column; gap: 7px; }
+  .add-card-form.open { display: flex; }
+  .add-card-form input,
+  .add-card-form textarea,
+  .add-card-form select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.83rem;
+    padding: 7px 10px;
+    resize: vertical;
+    outline: none;
+    font-family: inherit;
+    transition: border-color var(--transition);
+  }
+  .add-card-form input:focus,
+  .add-card-form textarea:focus { border-color: var(--accent); }
+  .add-form-actions {
+    display: flex;
+    gap: 7px;
+  }
+  .btn-confirm {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: opacity var(--transition);
+  }
+  .btn-confirm:hover { opacity: 0.88; }
+  .btn-cancel {
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .btn-cancel:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .add-card-trigger {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--card-radius);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    padding: 8px 12px;
+    cursor: pointer;
+    width: 100%;
+    transition: var(--transition);
+  }
+  .add-card-trigger:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* INLINE EDIT */
+  .editable-span {
+    cursor: text;
+    outline: none;
+    display: inline-block;
+    word-break: break-word;
+    min-width: 20px;
+  }
+  .editable-span:focus {
+    background: rgba(108,99,255,0.1);
+    border-radius: 3px;
+    outline: none;
+  }
+
+  /* DROP PLACEHOLDER */
+  .drop-placeholder {
+    height: 60px;
+    border: 2px dashed var(--accent);
+    border-radius: var(--card-radius);
+    background: rgba(108,99,255,0.07);
+    pointer-events: none;
+  }
+
+  /* Column dot colors */
+  .dot-backlog { background: #8b7fc7; }
+  .dot-todo { background: #fb923c; }
+  .dot-inprogress { background: #a78bfa; box-shadow: 0 0 6px rgba(167,139,250,0.5); }
+  .dot-done { background: #f472b6; box-shadow: 0 0 6px rgba(244,114,182,0.4); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 700px) {
+    .board { padding: 14px 10px; gap: 12px; }
+    .column { width: 260px; min-width: 240px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="dot"></span> Kanban Board</h1>
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search cards…" autocomplete="off" />
+    </div>
+    <button class="filter-btn active" data-filter="All">All</button>
+    <button class="filter-btn" data-filter="P1">P1</button>
+    <button class="filter-btn" data-filter="P2">P2</button>
+    <button class="filter-btn" data-filter="P3">P3</button>
+    <button class="filter-btn" data-filter="P4">P4</button>
+  </div>
+</header>
+
+<div class="board" id="board"></div>
+
+<!-- Context Menu -->
+<div class="ctx-menu" id="ctxMenu" role="menu">
+  <div class="ctx-item" id="ctxMoveNext">➡️ Move to next column</div>
+  <div class="ctx-item" id="ctxMovePrev">⬅️ Move to previous column</div>
+  <div class="ctx-item danger" id="ctxDelete">🗑️ Delete card</div>
+</div>
+
+<script>
+/* ============================================================
+   DATA MODEL
+   ============================================================ */
+const DEFAULT_BOARD = {
+  columns: [
+    { id: 'backlog',    title: 'Backlog',      cards: [] },
+    { id: 'todo',       title: 'To Do',        cards: [] },
+    { id: 'inprogress', title: 'In Progress',  cards: [] },
+    { id: 'done',       title: 'Done',         cards: [] },
+  ]
+};
+
+function loadBoard() {
+  const raw = localStorage.getItem('kanban-board');
+  return raw ? JSON.parse(raw) : DEFAULT_BOARD;
+}
+function saveBoard(board) {
+  localStorage.setItem('kanban-board', JSON.stringify(board));
+}
+
+let board = loadBoard();
+
+/* ============================================================
+   DRAG STATE
+   ============================================================ */
+let draggedCardId = null;
+let draggedFromCol = null;
+
+/* ============================================================
+   FILTER STATE
+   ============================================================ */
+let activeFilter = 'All';
+let searchQuery = '';
+
+/* ============================================================
+   CONTEXT MENU STATE
+   ============================================================ */
+let ctxTargetCardId = null;
+let ctxTargetColId = null;
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+
+  board.columns.forEach((col, colIdx) => {
+    const colEl = document.createElement('div');
+    colEl.className = 'column';
+    colEl.dataset.colId = col.id;
+    colEl.setAttribute('role', 'region');
+    colEl.setAttribute('aria-label', col.title);
+
+    // Column header
+    const dotClass = `dot-${col.id}`;
+    colEl.innerHTML = `
+      <div class="col-header">
+        <span class="col-title">
+          <span class="col-dot ${dotClass}"></span>
+          ${col.title}
+        </span>
+        <span class="count-badge" id="count-${col.id}">0</span>
+      </div>
+      <div class="cards-list" id="list-${col.id}"></div>
+      <div class="add-card-area" id="addArea-${col.id}">
+        <button class="add-card-trigger" onclick="openAddForm('${col.id}')">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Card
+        </button>
+        <div class="add-card-form" id="form-${col.id}">
+          <input type="text" id="inp-title-${col.id}" placeholder="Card title…" maxlength="120" />
+          <textarea id="inp-desc-${col.id}" placeholder="Description (optional)" rows="2" maxlength="400"></textarea>
+          <select id="inp-priority-${col.id}">
+            <option value="P4">P4 — Gray (Low)</option>
+            <option value="P3" selected>P3 — Blue (Medium)</option>
+            <option value="P2">P2 — Orange (High)</option>
+            <option value="P1">P1 — Red (Critical)</option>
+          </select>
+          <div class="add-form-actions">
+            <button class="btn-confirm" onclick="confirmAddCard('${col.id}')">Add</button>
+            <button class="btn-cancel" onclick="cancelAddForm('${col.id}')">Cancel</button>
+          </div>
+        </div>
+      </div>`;
+
+    boardEl.appendChild(colEl);
+
+    // Render cards
+    const listEl = document.getElementById(`list-${col.id}`);
+    let visibleCount = 0;
+    col.cards.forEach(card => {
+      const matches = cardMatchesFilter(card);
+      if (matches) visibleCount++;
+      const cardEl = buildCardEl(card, col.id, !matches);
+      listEl.appendChild(cardEl);
+    });
+
+    document.getElementById(`count-${col.id}`).textContent = visibleCount;
+
+    // Column drag events
+    colEl.addEventListener('dragover', onColDragOver);
+    colEl.addEventListener('dragleave', onColDragLeave);
+    colEl.addEventListener('drop', onColDrop);
+  });
+}
+
+function cardMatchesFilter(card) {
+  const priorityOk = activeFilter === 'All' || card.priority === activeFilter;
+  const q = searchQuery.trim().toLowerCase();
+  const searchOk = !q ||
+    card.title.toLowerCase().includes(q) ||
+    (card.desc || '').toLowerCase().includes(q);
+  return priorityOk && searchOk;
+}
+
+function buildCardEl(card, colId, hidden) {
+  const isDone = colId === 'done';
+  const el = document.createElement('div');
+  el.className = 'card' + (hidden ? ' hidden' : '');
+  el.dataset.cardId = card.id;
+  el.dataset.colId = colId;
+  el.draggable = true;
+  el.tabIndex = 0;
+  el.setAttribute('role', 'article');
+  el.setAttribute('aria-label', card.title);
+
+  const ts = new Date(card.created).toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+  });
+
+  el.innerHTML = `
+    <div class="card-row-top">
+      <span class="card-title ${isDone ? 'done-title' : ''}" 
+            contenteditable="false"
+            data-field="title">${escHtml(card.title)}</span>
+      <span class="priority-badge ${card.priority}">${card.priority}</span>
+    </div>
+    ${card.desc ? `<div class="card-desc" contenteditable="false" data-field="desc">${escHtml(card.desc)}</div>` : `<div class="card-desc" contenteditable="false" data-field="desc" style="display:none"></div>`}
+    <div class="card-meta">
+      <span class="card-ts">${ts}</span>
+      <select class="priority-select" title="Change priority" onchange="changePriority('${colId}','${card.id}',this.value)" onclick="event.stopPropagation()">
+        <option value="P1" ${card.priority==='P1'?'selected':''}>P1</option>
+        <option value="P2" ${card.priority==='P2'?'selected':''}>P2</option>
+        <option value="P3" ${card.priority==='P3'?'selected':''}>P3</option>
+        <option value="P4" ${card.priority==='P4'?'selected':''}>P4</option>
+      </select>
+    </div>`;
+
+  // Drag events
+  el.addEventListener('dragstart', e => onCardDragStart(e, card.id, colId));
+  el.addEventListener('dragend', onCardDragEnd);
+
+  // Double-click inline edit
+  el.addEventListener('dblclick', e => {
+    const field = e.target.closest('[data-field]');
+    if (field) startInlineEdit(field, card.id, colId);
+  });
+
+  // Keyboard: Space = context menu, Tab navigates
+  el.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      showCtxMenu(e, card.id, colId, el.getBoundingClientRect());
+    }
+  });
+
+  return el;
+}
+
+/* ============================================================
+   DRAG & DROP
+   ============================================================ */
+function onCardDragStart(e, cardId, colId) {
+  draggedCardId = cardId;
+  draggedFromCol = colId;
+  e.dataTransfer.setData('text/plain', cardId);
+  e.currentTarget.classList.add('dragging');
+}
+function onCardDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.drop-placeholder').forEach(p => p.remove());
+  document.querySelectorAll('.column.drag-over').forEach(c => c.classList.remove('drag-over'));
+}
+function onColDragOver(e) {
+  e.preventDefault();
+  const col = e.currentTarget;
+  col.classList.add('drag-over');
+  // Show placeholder
+  const list = col.querySelector('.cards-list');
+  let placeholder = list.querySelector('.drop-placeholder');
+  if (!placeholder) {
+    placeholder = document.createElement('div');
+    placeholder.className = 'drop-placeholder';
+  }
+  const afterCard = getCardAfterCursor(list, e.clientY);
+  if (afterCard) {
+    list.insertBefore(placeholder, afterCard);
+  } else {
+    list.appendChild(placeholder);
+  }
+}
+function onColDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.classList.remove('drag-over');
+    e.currentTarget.querySelectorAll('.drop-placeholder').forEach(p => p.remove());
+  }
+}
+function onColDrop(e) {
+  e.preventDefault();
+  const toColId = e.currentTarget.dataset.colId;
+  if (!draggedCardId) return;
+
+  const list = e.currentTarget.querySelector('.cards-list');
+  const placeholder = list.querySelector('.drop-placeholder');
+  const afterCard = placeholder ? getCardAfterCursor(list, e.clientY, true) : null;
+  placeholder && placeholder.remove();
+  e.currentTarget.classList.remove('drag-over');
+
+  moveCard(draggedFromCol, toColId, draggedCardId, afterCard ? afterCard.dataset.cardId : null);
+  draggedCardId = null;
+  draggedFromCol = null;
+}
+
+function getCardAfterCursor(list, y, skipPlaceholder = false) {
+  const cards = [...list.querySelectorAll('.card:not(.dragging):not(.drop-placeholder)')];
+  let closest = null;
+  let closestOffset = Infinity;
+  cards.forEach(card => {
+    const box = card.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && Math.abs(offset) < closestOffset) {
+      closestOffset = Math.abs(offset);
+      closest = card;
+    }
+  });
+  return closest;
+}
+
+function moveCard(fromColId, toColId, cardId, afterCardId = null) {
+  const fromCol = board.columns.find(c => c.id === fromColId);
+  const toCol   = board.columns.find(c => c.id === toColId);
+  if (!fromCol || !toCol) return;
+
+  const cardIdx = fromCol.cards.findIndex(c => c.id === cardId);
+  if (cardIdx === -1) return;
+  const [card] = fromCol.cards.splice(cardIdx, 1);
+
+  if (afterCardId) {
+    const afterIdx = toCol.cards.findIndex(c => c.id === afterCardId);
+    if (afterIdx >= 0) toCol.cards.splice(afterIdx, 0, card);
+    else toCol.cards.push(card);
+  } else {
+    toCol.cards.push(card);
+  }
+
+  saveBoard(board);
+  render();
+}
+
+/* ============================================================
+   ADD CARD
+   ============================================================ */
+function openAddForm(colId) {
+  document.getElementById(`form-${colId}`).classList.add('open');
+  document.querySelector(`#addArea-${colId} .add-card-trigger`).style.display = 'none';
+  document.getElementById(`inp-title-${colId}`).focus();
+}
+function cancelAddForm(colId) {
+  document.getElementById(`form-${colId}`).classList.remove('open');
+  document.querySelector(`#addArea-${colId} .add-card-trigger`).style.display = '';
+  document.getElementById(`inp-title-${colId}`).value = '';
+  document.getElementById(`inp-desc-${colId}`).value = '';
+}
+function confirmAddCard(colId) {
+  const title = document.getElementById(`inp-title-${colId}`).value.trim();
+  if (!title) { alert('Title is required.'); return; }
+  const desc = document.getElementById(`inp-desc-${colId}`).value.trim();
+  const priority = document.getElementById(`inp-priority-${colId}`).value;
+  const col = board.columns.find(c => c.id === colId);
+  col.cards.push({
+    id: crypto.randomUUID(),
+    title,
+    desc,
+    priority,
+    created: Date.now()
+  });
+  saveBoard(board);
+  render();
+}
+
+/* ============================================================
+   INLINE EDITING (double-click)
+   ============================================================ */
+function startInlineEdit(fieldEl, cardId, colId) {
+  fieldEl.contentEditable = 'true';
+  fieldEl.style.display = 'block';
+  fieldEl.focus();
+
+  // Select all text
+  const range = document.createRange();
+  range.selectNodeContents(fieldEl);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(range);
+
+  const original = fieldEl.textContent;
+
+  function save() {
+    fieldEl.contentEditable = 'false';
+    const newVal = fieldEl.textContent.trim();
+    if (!newVal && fieldEl.dataset.field === 'title') {
+      fieldEl.textContent = original; // revert if empty title
+      return;
+    }
+    const col = board.columns.find(c => c.id === colId);
+    const card = col?.cards.find(c => c.id === cardId);
+    if (card) {
+      if (fieldEl.dataset.field === 'title') card.title = newVal || original;
+      else card.desc = newVal;
+      saveBoard(board);
+      render();
+    }
+  }
+
+  fieldEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { fieldEl.textContent = original; fieldEl.contentEditable = 'false'; }
+  }, { once: true });
+
+  fieldEl.addEventListener('blur', save, { once: true });
+}
+
+/* ============================================================
+   PRIORITY CHANGE
+   ============================================================ */
+function changePriority(colId, cardId, newPriority) {
+  const col = board.columns.find(c => c.id === colId);
+  const card = col?.cards.find(c => c.id === cardId);
+  if (card) {
+    card.priority = newPriority;
+    saveBoard(board);
+    render();
+  }
+}
+
+/* ============================================================
+   CONTEXT MENU (keyboard accessibility)
+   ============================================================ */
+const ctxMenu = document.getElementById('ctxMenu');
+
+function showCtxMenu(e, cardId, colId, rect) {
+  ctxTargetCardId = cardId;
+  ctxTargetColId = colId;
+  ctxMenu.style.top = (rect ? rect.bottom + 4 : e.clientY) + 'px';
+  ctxMenu.style.left = (rect ? rect.left : e.clientX) + 'px';
+  ctxMenu.classList.add('visible');
+}
+document.getElementById('ctxMoveNext').addEventListener('click', () => {
+  const colIdx = board.columns.findIndex(c => c.id === ctxTargetColId);
+  if (colIdx < board.columns.length - 1) {
+    moveCard(ctxTargetColId, board.columns[colIdx + 1].id, ctxTargetCardId);
+  }
+  hideCtxMenu();
+});
+document.getElementById('ctxMovePrev').addEventListener('click', () => {
+  const colIdx = board.columns.findIndex(c => c.id === ctxTargetColId);
+  if (colIdx > 0) {
+    moveCard(ctxTargetColId, board.columns[colIdx - 1].id, ctxTargetCardId);
+  }
+  hideCtxMenu();
+});
+document.getElementById('ctxDelete').addEventListener('click', () => {
+  deleteCard(ctxTargetColId, ctxTargetCardId);
+  hideCtxMenu();
+});
+document.addEventListener('click', e => {
+  if (!ctxMenu.contains(e.target)) hideCtxMenu();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideCtxMenu();
+});
+function hideCtxMenu() {
+  ctxMenu.classList.remove('visible');
+  ctxTargetCardId = null;
+  ctxTargetColId = null;
+}
+
+/* ============================================================
+   DELETE CARD
+   ============================================================ */
+function deleteCard(colId, cardId) {
+  const col = board.columns.find(c => c.id === colId);
+  if (!col) return;
+  col.cards = col.cards.filter(c => c.id !== cardId);
+  saveBoard(board);
+  render();
+}
+
+/* ============================================================
+   SEARCH + FILTER
+   ============================================================ */
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  render();
+});
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeFilter = btn.dataset.filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  });
+});
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+render();
+</script>
+</body>
+</html>
