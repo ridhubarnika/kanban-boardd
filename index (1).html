@@ -37,7 +37,7 @@
     padding: 0;
   }
 
-  
+
   header {
     display: flex;
     align-items: center;
@@ -437,6 +437,7 @@ function saveBoard(board) {
 
 let board = loadBoard();
 
+
 let draggedCardId = null;
 let draggedFromCol = null;
 
@@ -658,6 +659,7 @@ function moveCard(fromColId, toColId, cardId, afterCardId = null) {
   render();
 }
 
+
 function openAddForm(colId) {
   document.getElementById(`form-${colId}`).classList.add('open');
   document.querySelector(`#addArea-${colId} .add-card-trigger`).style.display = 'none';
@@ -692,7 +694,6 @@ function startInlineEdit(fieldEl, cardId, colId) {
   fieldEl.style.display = 'block';
   fieldEl.focus();
 
-  // Select all text
   const range = document.createRange();
   range.selectNodeContents(fieldEl);
   window.getSelection().removeAllRanges();
@@ -805,7 +806,6 @@ function escHtml(str) {
   d.textContent = str;
   return d.innerHTML;
 }
-
 
 render();
 </script>
