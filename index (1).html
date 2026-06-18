@@ -37,7 +37,7 @@
     padding: 0;
   }
 
-  /* HEADER */
+  
   header {
     display: flex;
     align-items: center;
@@ -66,7 +66,6 @@
     box-shadow: 0 0 10px rgba(167,139,250,0.6);
   }
 
-  /* SEARCH + FILTER */
   .toolbar {
     display: flex;
     align-items: center;
@@ -108,7 +107,6 @@
   .filter-btn:hover { border-color: var(--accent); color: var(--text); }
   .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  /* BOARD */
   .board {
     display: flex;
     gap: 18px;
@@ -118,7 +116,6 @@
     align-items: flex-start;
   }
 
-  /* COLUMN */
   .column {
     background: var(--surface);
     border-radius: var(--radius);
@@ -176,7 +173,6 @@
     flex: 1;
   }
 
-  /* CARD */
   .card {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -255,7 +251,6 @@
     opacity: 0.65;
   }
 
-  /* PRIORITY DROPDOWN on card */
   .priority-select {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -269,7 +264,6 @@
   }
   .priority-select:focus { border-color: var(--accent); }
 
-  /* CONTEXT MENU */
   .ctx-menu {
     position: fixed;
     background: var(--surface2);
@@ -295,7 +289,6 @@
   .ctx-item:hover { background: var(--border); }
   .ctx-item.danger { color: var(--p1); }
 
-  /* ADD CARD */
   .add-card-area {
     padding: 8px 10px 12px;
   }
@@ -361,7 +354,6 @@
   }
   .add-card-trigger:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* INLINE EDIT */
   .editable-span {
     cursor: text;
     outline: none;
@@ -375,7 +367,6 @@
     outline: none;
   }
 
-  /* DROP PLACEHOLDER */
   .drop-placeholder {
     height: 60px;
     border: 2px dashed var(--accent);
@@ -384,13 +375,11 @@
     pointer-events: none;
   }
 
-  /* Column dot colors */
   .dot-backlog { background: #8b7fc7; }
   .dot-todo { background: #fb923c; }
   .dot-inprogress { background: #a78bfa; box-shadow: 0 0 6px rgba(167,139,250,0.5); }
   .dot-done { background: #f472b6; box-shadow: 0 0 6px rgba(244,114,182,0.4); }
 
-  /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -428,9 +417,7 @@
 </div>
 
 <script>
-/* ============================================================
-   DATA MODEL
-   ============================================================ */
+
 const DEFAULT_BOARD = {
   columns: [
     { id: 'backlog',    title: 'Backlog',      cards: [] },
@@ -450,27 +437,18 @@ function saveBoard(board) {
 
 let board = loadBoard();
 
-/* ============================================================
-   DRAG STATE
-   ============================================================ */
 let draggedCardId = null;
 let draggedFromCol = null;
 
-/* ============================================================
-   FILTER STATE
-   ============================================================ */
+
 let activeFilter = 'All';
 let searchQuery = '';
 
-/* ============================================================
-   CONTEXT MENU STATE
-   ============================================================ */
+
 let ctxTargetCardId = null;
 let ctxTargetColId = null;
 
-/* ============================================================
-   RENDER
-   ============================================================ */
+
 function render() {
   const boardEl = document.getElementById('board');
   boardEl.innerHTML = '';
@@ -482,7 +460,6 @@ function render() {
     colEl.setAttribute('role', 'region');
     colEl.setAttribute('aria-label', col.title);
 
-    // Column header
     const dotClass = `dot-${col.id}`;
     colEl.innerHTML = `
       <div class="col-header">
@@ -516,7 +493,6 @@ function render() {
 
     boardEl.appendChild(colEl);
 
-    // Render cards
     const listEl = document.getElementById(`list-${col.id}`);
     let visibleCount = 0;
     col.cards.forEach(card => {
@@ -528,7 +504,6 @@ function render() {
 
     document.getElementById(`count-${col.id}`).textContent = visibleCount;
 
-    // Column drag events
     colEl.addEventListener('dragover', onColDragOver);
     colEl.addEventListener('dragleave', onColDragLeave);
     colEl.addEventListener('drop', onColDrop);
@@ -577,17 +552,14 @@ function buildCardEl(card, colId, hidden) {
       </select>
     </div>`;
 
-  // Drag events
   el.addEventListener('dragstart', e => onCardDragStart(e, card.id, colId));
   el.addEventListener('dragend', onCardDragEnd);
 
-  // Double-click inline edit
   el.addEventListener('dblclick', e => {
     const field = e.target.closest('[data-field]');
     if (field) startInlineEdit(field, card.id, colId);
   });
 
-  // Keyboard: Space = context menu, Tab navigates
   el.addEventListener('keydown', e => {
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
@@ -598,9 +570,7 @@ function buildCardEl(card, colId, hidden) {
   return el;
 }
 
-/* ============================================================
-   DRAG & DROP
-   ============================================================ */
+
 function onCardDragStart(e, cardId, colId) {
   draggedCardId = cardId;
   draggedFromCol = colId;
@@ -688,9 +658,6 @@ function moveCard(fromColId, toColId, cardId, afterCardId = null) {
   render();
 }
 
-/* ============================================================
-   ADD CARD
-   ============================================================ */
 function openAddForm(colId) {
   document.getElementById(`form-${colId}`).classList.add('open');
   document.querySelector(`#addArea-${colId} .add-card-trigger`).style.display = 'none';
@@ -719,9 +686,7 @@ function confirmAddCard(colId) {
   render();
 }
 
-/* ============================================================
-   INLINE EDITING (double-click)
-   ============================================================ */
+
 function startInlineEdit(fieldEl, cardId, colId) {
   fieldEl.contentEditable = 'true';
   fieldEl.style.display = 'block';
@@ -760,9 +725,7 @@ function startInlineEdit(fieldEl, cardId, colId) {
   fieldEl.addEventListener('blur', save, { once: true });
 }
 
-/* ============================================================
-   PRIORITY CHANGE
-   ============================================================ */
+
 function changePriority(colId, cardId, newPriority) {
   const col = board.columns.find(c => c.id === colId);
   const card = col?.cards.find(c => c.id === cardId);
@@ -773,9 +736,7 @@ function changePriority(colId, cardId, newPriority) {
   }
 }
 
-/* ============================================================
-   CONTEXT MENU (keyboard accessibility)
-   ============================================================ */
+
 const ctxMenu = document.getElementById('ctxMenu');
 
 function showCtxMenu(e, cardId, colId, rect) {
@@ -815,9 +776,7 @@ function hideCtxMenu() {
   ctxTargetColId = null;
 }
 
-/* ============================================================
-   DELETE CARD
-   ============================================================ */
+
 function deleteCard(colId, cardId) {
   const col = board.columns.find(c => c.id === colId);
   if (!col) return;
@@ -826,9 +785,7 @@ function deleteCard(colId, cardId) {
   render();
 }
 
-/* ============================================================
-   SEARCH + FILTER
-   ============================================================ */
+
 document.getElementById('searchInput').addEventListener('input', e => {
   searchQuery = e.target.value;
   render();
@@ -842,18 +799,14 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
   });
 });
 
-/* ============================================================
-   HELPERS
-   ============================================================ */
+
 function escHtml(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
 }
 
-/* ============================================================
-   INIT
-   ============================================================ */
+
 render();
 </script>
 </body>
